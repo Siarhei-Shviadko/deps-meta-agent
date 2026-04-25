@@ -1,0 +1,14 @@
+services:
+  api:
+    image: "meta-agent-dev"
+    container_name: "deps-meta-agent"
+    command: python -m deps_meta_agent serve
+
+  consumer:
+    image: "meta-agent-dev"
+    container_name: "deps-meta-agent-consumer"
+    command: python -m deps_meta_agent dispatch
+
+  migrator:
+    image: "meta-agent-migrator"
+    container_name: "deps-meta-agent-migrator"

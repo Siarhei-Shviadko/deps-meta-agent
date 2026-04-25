@@ -1,0 +1,33 @@
+meta_agent:
+  image:
+    path: "/deps-platform/deps-meta-agent"
+  resources: {}
+
+meta_agent_settings:
+  ENV: qa
+
+  LOG_LEVEL: "INFO"
+
+  DATABASE_REQUIRE_SECURE_TRANSPORT: false
+
+migration_settings:
+  DATABASE_REQUIRE_SECURE_TRANSPORT: false
+
+meta_agent_consumer:
+  image:
+    path: "/deps-platform/deps-meta-agent"
+
+migrator:
+  image:
+    path: "/deps-platform/deps-meta-agent-migrator"
+
+helm:
+  helm_logs_job_enabled: false
+
+csi:
+  vault_namespace: 'k8s-qa'
+  roleName: 'k8s-qa'
+  vaultKubernetesMountPath: 'kubernetes-qa'
+
+service_account:
+  serviceAccountName: 'deps-qa'

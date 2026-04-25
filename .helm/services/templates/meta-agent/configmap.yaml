@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: meta-agent-configmap
+  labels:
+    {{- include "deps-meta-agent.labels" . | nindent 4 }}
+data:
+  ENV: {{ .Values.meta_agent_settings.ENV }}
+  DATABASE_PORT: '{{ .Values.meta_agent_settings.DATABASE_PORT }}'
+  DATABASE_DIALECT: '{{ .Values.meta_agent_settings.DATABASE_DIALECT }}'
+  DATABASE_DRIVER: '{{ .Values.meta_agent_settings.DATABASE_DRIVER }}'
+  DATABASE_REQUIRE_SECURE_TRANSPORT: '{{ .Values.meta_agent_settings.DATABASE_REQUIRE_SECURE_TRANSPORT }}'
+
+  {{- if .Values.meta_agent_settings.DATABASE_REQUIRE_SECURE_TRANSPORT }}
+  DATABASE_SSLKEY: {{ .Values.migration_settings.DATABASE_SSLKEY_PATH }}
+  DATABASE_SSLCERT: {{ .Values.migration_settings.DATABASE_SSLCERT_PATH }}
+  DATABASE_SSLROOTCERT: {{ .Values.migration_settings.DATABASE_SSLROOTCERT_PATH }}
+  {{- end }}
+
+  AUTH_VERIFY_SSL: '{{ .Values.meta_agent_settings.AUTH_VERIFY_SSL }}'
+
+  LOG_LEVEL: '{{ .Values.meta_agent_settings.LOG_LEVEL }}'
+  DOCUMENTATION_ENABLED: '{{ .Values.meta_agent_settings.DOCUMENTATION_ENABLED }}'
+
+  KAFKA_GROUP_ID: '{{ .Values.meta_agent_settings.KAFKA_GROUP_ID }}'
+  KAFKA_AUTO_OFFSET_RESET: '{{ .Values.meta_agent_settings.KAFKA_AUTO_OFFSET_RESET }}'
+
+  {{ if .Values.meta_agent_settings.RABBITMQ_TLS_ENABLED }}
+  RABBITMQ_TLS_HOST: '{{ .Values.meta_agent_settings.RABBITMQ_TLS_HOST }}'
+  RABBITMQ_TLS_PORT: '{{ .Values.meta_agent_settings.RABBITMQ_TLS_PORT }}'
+  RABBITMQ_TLS_USER: '{{ .Values.meta_agent_settings.RABBITMQ_TLS_USER }}'
+  RABBITMQ_TLS_VHOST: '{{ .Values.meta_agent_settings.RABBITMQ_TLS_VHOST }}'
+  RABBITMQ_TLS_SUBJECT: '{{ .Values.meta_agent_settings.RABBITMQ_TLS_SUBJECT }}'
+  RABBITMQ_TLS_CA_CERT: '{{ .Values.meta_agent_settings.RABBITMQ_TLS_CA_CERT }}'
+  RABBITMQ_TLS_CLIENT_CERT: '{{ .Values.meta_agent_settings.RABBITMQ_TLS_CLIENT_CERT }}'
+  RABBITMQ_TLS_CLIENT_KEY: '{{ .Values.meta_agent_settings.RABBITMQ_TLS_CLIENT_KEY }}'
+  {{ end }}
+
+  {{ if .Values.meta_agent_settings.KAFKA_SECURITY_ENABLED }}
+  KAFKA_SASL_MECHANISM: '{{ .Values.meta_agent_settings.KAFKA_SASL_MECHANISM }}'
+  KAFKA_SECURITY_PROTOCOL: '{{ .Values.meta_agent_settings.KAFKA_SECURITY_PROTOCOL }}'
+  {{ end }}
+  {{ if .Values.message_broker_asb_without_manage_permission.enabled }}
+  ASB_SUBSCRIPTION_STRATEGY: '{{ .Values.meta_agent_settings.ASB_SUBSCRIPTION_STRATEGY }}'
+  {{ end }}
+  # Agentic AI
+  AGENTIC_AI_URL: '{{ .Values.meta_agent_settings.AGENTIC_AI_URL }}'
+  META_AGENT_URL: '{{ .Values.meta_agent_settings.META_AGENT_URL }}'
+  # Telemetry
+  INSTRUMENTATION_ENABLED: '{{ .Values.meta_agent_settings.INSTRUMENTATION_ENABLED }}'
+  SERVICE_NAME: '{{ .Values.meta_agent_settings.SERVICE_NAME }}'
+  EXPORTER_TYPE: '{{ .Values.meta_agent_settings.EXPORTER_TYPE }}'
+
+  # Orchestrator LLM settings
+  ORCHESTRATOR_PROVIDER_ID: '{{ .Values.meta_agent_settings.ORCHESTRATOR_PROVIDER_ID }}'
+  ORCHESTRATOR_MODEL_ID: '{{ .Values.meta_agent_settings.ORCHESTRATOR_MODEL_ID }}'
+  ORCHESTRATOR_MAX_ITERATIONS: '{{ .Values.meta_agent_settings.ORCHESTRATOR_MAX_ITERATIONS }}'
+
+  EPAM_DIAL_ENDPOINT: '{{ .Values.meta_agent_settings.EPAM_DIAL_ENDPOINT }}'
+  EPAM_DIAL_API_VERSION: '{{ .Values.meta_agent_settings.EPAM_DIAL_API_VERSION }}'
+
+  AZURE_API_ENDPOINT: '{{ .Values.meta_agent_settings.AZURE_API_ENDPOINT }}'
+  AZURE_API_VERSION: '{{ .Values.meta_agent_settings.AZURE_API_VERSION }}'
+
+  AWS_REGION: '{{ .Values.meta_agent_settings.AWS_REGION }}'

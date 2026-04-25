@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: meta-agent
+  labels:
+    {{- include "deps-meta-agent.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.meta_agent.service.type }}
+  ports:
+    - port: {{ .Values.meta_agent.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "deps-meta-agent.selectorLabels" . | nindent 4 }}

@@ -1,0 +1,44 @@
+databaseChangeLog:
+- changeSet:
+    id: 1
+    author: Siarhei Shveadko
+    changes:
+    - createTable:
+        tableName: agentic-manifest
+        columns:
+        - column:
+            name: code
+            type: VARCHAR(150)
+            constraints:
+                primaryKey: true
+                primaryKeyName: agentic-manifest-pk
+        - column:
+            name: name
+            type: VARCHAR(150)
+            constraints:
+                nullable: false
+        - column:
+            name: description
+            type: VARCHAR(2000)
+            constraints:
+                nullable: false
+        - column:
+            name: endpoint
+            type: JSONB
+            constraints:
+                nullable: false
+        - column:
+            name: created_at
+            type: TIMESTAMPTZ
+            constraints:
+                nullable: false
+        - column:
+            name: updated_at
+            type: TIMESTAMPTZ
+            constraints:
+                nullable: false
+                defaultValueComputed: CURRENT_TIMESTAMP
+
+    rollback:
+    - dropTable:
+        tableName: agentic-manifest

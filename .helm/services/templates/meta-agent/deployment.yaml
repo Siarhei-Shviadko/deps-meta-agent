@@ -1,0 +1,171 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meta-agent
+  labels:
+    {{- include "deps-meta-agent.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.meta_agent.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "deps-meta-agent.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "deps-meta-agent.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- if .Values.meta_agent.imagePullSecrets }}
+      imagePullSecrets:
+        - name: {{ .Values.meta_agent.imagePullSecrets }}
+      {{- end }}
+      {{- if .Values.podSecurityContext.runAsNonRoot }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- if or .Values.vault_settings.hashicorp_vault .Values.vault_settings.gcp_secret_manager .Values.vault_settings.aws_secret_manager }}
+      serviceAccountName: {{ .Values.service_account.serviceAccountName }}
+      {{- end }}
+      {{- if .Values.meta_agent_settings.DATABASE_REQUIRE_SECURE_TRANSPORT }}
+      initContainers:
+        - name: init-meta-agent
+          image: busybox
+          command: ["sh", "-c", "cp /home/inputdbcerts/* /home/outputdbcerts/ && chmod g-r /home/outputdbcerts/*.key"]
+          volumeMounts:
+            - name: tls-database-certs
+              mountPath: /home/inputdbcerts
+            - name: outputdbcerts
+              mountPath: /home/outputdbcerts
+      {{- end }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: '{{ .Values.registry }}{{ .Values.meta_agent.image.path }}:{{ .Values.meta_agent.image.tag | default "latest" }}'
+          imagePullPolicy: {{ .Values.meta_agent.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.meta_agent.resources | nindent 12 }}
+          envFrom:
+          - configMapRef:
+              name: meta-agent-configmap
+              optional: false
+          env:
+          {{- if .Values.vault_settings.enabled }}
+          {{- toYaml .Values.meta_agent_vault_enabled.env | nindent 10 }}
+          {{ if .Values.meta_agent_settings.RABBITMQ_TLS_ENABLED }}
+          - name: RABBITMQ_TLS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: deps-meta-agent
+                key: rabbitmq-password
+          {{ end }}
+          {{ if .Values.meta_agent_settings.KAFKA_SECURITY_ENABLED }}
+          - name: KAFKA_SASL_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: deps-meta-agent
+                key: kafka-sasl-username
+          - name: KAFKA_SASL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: deps-meta-agent
+                key: kafka-sasl-password
+          {{ end }}
+          {{- else }}
+          {{- toYaml .Values.meta_agent_vault_disabled.env | nindent 10 }}
+          {{ if .Values.meta_agent_settings.RABBITMQ_TLS_ENABLED }}
+          - name: RABBITMQ_TLS_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: rabbitmq-password
+                key: rabbitmq-password
+          {{ end }}
+          {{ if .Values.meta_agent_settings.KAFKA_SECURITY_ENABLED }}
+          - name: KAFKA_SASL_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: kafka-secrets
+                key: kafka-sasl-username
+          - name: KAFKA_SASL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: kafka-secrets
+                key: kafka-sasl-password
+          {{ end }}
+          {{- end }}
+          volumeMounts:
+          {{- if or .Values.meta_agent_settings.RABBITMQ_TLS_ENABLED .Values.meta_agent_settings.DATABASE_REQUIRE_SECURE_TRANSPORT }}
+            {{ if .Values.meta_agent_settings.RABBITMQ_TLS_ENABLED }}
+            - name: security-certs
+              mountPath: {{ .Values.certs_location.certs_default_path }}
+              readOnly: true
+            {{ end }}
+            {{ if .Values.meta_agent_settings.DATABASE_REQUIRE_SECURE_TRANSPORT }}
+            - name: outputdbcerts
+              mountPath: {{ .Values.certs_location.database_sslcerts_path }}
+            {{ end }}
+          {{- end }}
+          {{- if .Values.vault_settings.enabled }}
+            - name: secrets-store-inline
+              mountPath: {{ .Values.secrets_location.secrets_default_path }}
+              readOnly: true
+          {{- end }}
+      volumes:
+      {{- if or .Values.meta_agent_settings.RABBITMQ_TLS_ENABLED .Values.meta_agent_settings.DATABASE_REQUIRE_SECURE_TRANSPORT }}
+        {{ if .Values.meta_agent_settings.RABBITMQ_TLS_ENABLED }}
+        - name: security-certs
+          secret:
+            secretName: {{ .Values.secrets.security_certs.secretName }}
+        {{ end }}
+        {{ if .Values.meta_agent_settings.DATABASE_REQUIRE_SECURE_TRANSPORT }}
+        - name: tls-database-certs
+          secret:
+            secretName: {{ .Values.secrets.database_ssl_secret.secretName }}
+            items:
+            - key: tls.crt
+              path: tls.crt
+            - key: tls.key
+              path: tls.key
+              mode: 0600
+            - key: root.crt
+              path: root.crt
+            defaultMode: 0644
+        - name: outputdbcerts
+          emptyDir: {}
+        {{ end }}
+      {{- end }}
+      {{- if .Values.vault_settings.enabled }}
+        - name: secrets-store-inline
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: {{ .Values.csi.csi_default_name }}
+      {{- end }}
+      {{- if .Values.meta_agent_settings.INSTRUMENTATION_ENABLED }}
+        {{- if .Values.meta_agent_settings.EXPORTER_TYPE "azure" }}
+        - name: APPLICATION_INSIGHTS_CONNECTION_STRING
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.secrets.telemetry_secrets.secretName }}
+              key: application-insights-connection-string
+        {{- end }}
+      {{- end }}
+
+      {{- with .Values.meta_agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.meta_agent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.meta_agent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
