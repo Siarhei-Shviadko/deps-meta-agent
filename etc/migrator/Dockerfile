@@ -1,5 +1,5 @@
 ARG REPOSITORY_URL=""
-FROM ${REPOSITORY_URL}/base/liquibase:4.30.0
+FROM ${REPOSITORY_URL:+$REPOSITORY_URL/base/}liquibase:4.30.0
 
 USER root
 
